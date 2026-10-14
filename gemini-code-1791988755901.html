@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defterdar - Mali Müşavir Cari Takip</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <!-- ÜST NAVBAR -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('panel')">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-700 flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-landmark text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-gray-900 leading-tight text-lg">Defterdar</h1>
+                        <p class="text-xs text-gray-500 font-medium">Mali Müşavir Cari Takibi</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex space-x-2">
+                    <button onclick="switchTab('panel')" id="nav-panel" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-50 text-emerald-700">
+                        Panel
+                    </button>
+                    <button onclick="switchTab('mükellefler')" id="nav-mükellefler" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all text-gray-600 hover:bg-gray-100">
+                        Mükellefler
+                    </button>
+                </nav>
+            </div>
+            <div class="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 hidden sm:block">
+                <i class="fa-solid fa-book-open mr-1.5 text-emerald-600"></i> Cari hesap & nakit akış defteri
+            </div>
+        </div>
+    </header>
+
+    <!-- ANA İÇERİK ALANI -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- =================== PANEL SEKMESİ =================== -->
+        <div id="tab-panel" class="space-y-6">
+            <!-- Başlık ve Hızlı İşlemler -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Panel</h2>
+                    <p class="text-sm text-gray-500">Nakit akışı ve mükellef cari özeti — <span id="current-month-label">Ekim 2026</span></p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="openModal('tahsilat')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-down-long"></i> Tahsilat Ekle
+                    </button>
+                    <button onclick="openModal('odeme')" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-up-long"></i> Ödeme Ekle
+                    </button>
+                    <button onclick="openTopluTahakkukModal()" class="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar"></i> Toplu Tahakkuk
+                    </button>
+                </div>
+            </div>
+
+            <!-- ÖZET KARTLARI -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Toplam Alacak / Seçilen Mükellef Bakiye -->
+                <div class="bg-white p-5 rounded-xl border border-amber-200 shadow-sm relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p id="stat-alacak-title" class="text-xs font-bold tracking-wider text-amber-800 uppercase">TOPLAM ALACAK</p>
+                            <h3 id="stat-toplam-alacak" class="text-2xl font-extrabold text-gray-900 mt-1">₺0,00</h3>
+                            <p id="stat-mükellef-sayisi" class="text-xs text-gray-500 mt-1">0 mükellef carisi</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <i class="fa-solid fa-wallet text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bu Ay Tahsilat -->
+                <div class="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold tracking-wider text-emerald-800 uppercase">BU AY TAHSİLAT</p>
+                            <h3 id="stat-bu-ay-tahsilat" class="text-2xl font-extrabold text-gray-900 mt-1">₺0,00</h3>
+                            <p class="text-xs text-gray-500 mt-1">Ekim 2026 nakit girişi</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i class="fa-solid fa-arrow-down text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bu Ay Ödemeler -->
+                <div class="bg-white p-5 rounded-xl border border-rose-200 shadow-sm relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold tracking-wider text-rose-800 uppercase">BU AY ÖDEMELER</p>
+                            <h3 id="stat-bu-ay-odemeler" class="text-2xl font-extrabold text-gray-900 mt-1">₺0,00</h3>
+                            <p class="text-xs text-gray-500 mt-1">mükellefler adına nakit çıkışı</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                            <i class="fa-solid fa-arrow-up text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Net Nakit -->
+                <div class="bg-white p-5 rounded-xl border border-blue-200 shadow-sm relative overflow-hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold tracking-wider text-blue-800 uppercase">NET NAKİT</p>
+                            <h3 id="stat-net-nakit" class="text-2xl font-extrabold text-gray-900 mt-1">₺0,00</h3>
+                            <p class="text-xs text-gray-500 mt-1">tüm zamanlar · tahsilat - ödeme</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <i class="fa-solid fa-scale-balanced text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtreler ve Tablo -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4 bg-gray-50/50">
+                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                        <!-- Mükellef Filtreleme Alanı -->
+                        <div class="w-full sm:w-64">
+                            <select id="filter-panel-mukellef" onchange="onPanelMukellefChange()" class="w-full bg-white border border-gray-300 text-gray-700 text-sm rounded-lg px-3 py-2 outline-none focus:border-emerald-600">
+                                <option value="tumu">Tüm Mükellefler (Genel Akış)</option>
+                            </select>
+                        </div>
+                        <select id="filter-islem-tipi" onchange="renderTransactions()" class="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg px-3 py-2 outline-none focus:border-emerald-600">
+                            <option value="tumu">Tüm İşlem Tipleri</option>
+                            <option value="Tahakkuk">Tahakkuk</option>
+                            <option value="Tahsilat">Tahsilat</option>
+                            <option value="Ödeme">Ödeme</option>
+                        </select>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        Kasa bakiyesi tüm dönemler üzerinden yürütülür.
+                    </div>
+                </div>
+
+                <!-- Tablo -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-100/75 border-b border-gray-200 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                                <th class="p-3 pl-4">Tarih</th>
+                                <th class="p-3">Mükellef</th>
+                                <th class="p-3">İşlem</th>
+                                <th class="p-3">Kategori</th>
+                                <th class="p-3">Açıklama</th>
+                                <th class="p-3 text-right">Giriş</th>
+                                <th class="p-3 text-right">Çıkış</th>
+                                <th class="p-3 text-right pr-4">Kasa Bakiye</th>
+                                <th class="p-3 text-center">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transaction-table-body" class="divide-y divide-gray-200">
+                            <!-- Dinamik Dolacak -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-gray-50 font-bold text-gray-900 border-t border-gray-200">
+                                <td colspan="5" class="p-3 pl-4 text-xs uppercase text-gray-600" id="table-record-count">TOPLAM (0 KAYIT)</td>
+                                <td class="p-3 text-right text-emerald-700" id="footer-total-giris">₺0,00</td>
+                                <td class="p-3 text-right text-rose-700" id="footer-total-cikis">₺0,00</td>
+                                <td class="p-3 text-right pr-4 text-gray-900" id="footer-total-bakiye">₺0,00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== MÜKELLEFLER SEKMESİ =================== -->
+        <div id="tab-mükellefler" class="space-y-6 hidden">
+            <!-- Başlık ve Yeni Mükellef Butonu -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Mükellefler</h2>
+                    <p id="mükellef-subtitle" class="text-sm text-gray-500">0 mükellef · bakiye = tahakkuk + ödeme - tahsilat</p>
+                </div>
+                <button onclick="openModal('mukellef')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Yeni Mükellef
+                </button>
+            </div>
+
+            <!-- Arama Çubuğu (Canlı Filtreleme) -->
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-search"></i>
+                    </span>
+                    <input type="text" id="mukellef-search-input" oninput="renderMukellefler()" placeholder="Unvan veya VKN ara..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:border-emerald-600 outline-none transition-all">
+                </div>
+            </div>
+
+            <!-- Mükellefler Tablosu -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-100/75 border-b border-gray-200 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                                <th class="p-3 pl-4">Unvan</th>
+                                <th class="p-3">VKN / TCKN</th>
+                                <th class="p-3">Aylık Ücret</th>
+                                <th class="p-3">Borç (Tahakkuk + Ödeme)</th>
+                                <th class="p-3">Tahsilat</th>
+                                <th class="p-3">Bakiye</th>
+                                <th class="p-3 text-center pr-4">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mukellef-table-body" class="divide-y divide-gray-200">
+                            <!-- Dinamik Dolacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- =================== MODALLAR =================== -->
+
+    <!-- Yeni Mükellef Modalı -->
+    <div id="modal-mukellef" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="text-lg font-bold text-gray-900" id="mukellef-modal-title">Yeni Mükellef Ekle</h3>
+                <button onclick="closeModal('mukellef')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="form-mukellef" onsubmit="saveMukellef(event)" class="space-y-4">
+                <input type="hidden" id="edit-mukellef-id">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Mükellef Unvanı / Adı Soyadı</label>
+                    <input type="text" id="m-unvan" required placeholder="Örn: ARİF TURGUT" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">VKN / TCKN</label>
+                    <input type="text" id="m-vkn" required placeholder="10 haneli VKN veya 11 haneli TCKN" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Aylık Muhasebe Ücreti (₺)</label>
+                    <input type="number" step="0.01" id="m-ucret" required placeholder="0.00" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('mukellef')" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50">İptal</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-sm font-semibold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toplu / Çoklu Ay Tahakkuk Modalı -->
+    <div id="modal-toplu-tahakkuk" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-xl space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b pb-3">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Çoklu Dönem Toplu Tahakkuk</h3>
+                    <p class="text-xs text-gray-500">Tek seferde birden fazla ay seçerek toplu tahakkuk oluşturun</p>
+                </div>
+                <button onclick="closeModal('toplu-tahakkuk')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="space-y-4 flex-1 overflow-y-auto pr-1">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-xs font-semibold text-gray-700 uppercase">Tahakkuk Edilecek Ayları / Dönemleri Seçin</label>
+                        <div class="space-x-2 text-xs">
+                            <button type="button" onclick="toggleAllAylar(true)" class="text-emerald-700 font-semibold hover:underline">Tümünü Seç</button>
+                            <span class="text-gray-300">|</span>
+                            <button type="button" onclick="toggleAllAylar(false)" class="text-rose-600 font-semibold hover:underline">Seçimi Kaldır</button>
+                        </div>
+                    </div>
+                    <div id="tt-aylar-listesi" class="grid grid-cols-2 sm:grid-cols-3 gap-2 border border-gray-200 rounded-lg p-3 bg-gray-50/50 max-h-36 overflow-y-auto"></div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Ortak Tutar (İsteğe Bağlı)</label>
+                        <input type="number" step="0.01" id="tt-tutar" placeholder="Boşsa kendi aylık ücreti" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">İşlem Tarihi</label>
+                        <input type="date" id="tt-islem-tarihi" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-xs font-semibold text-gray-700 uppercase">Mükellef Seçimi</label>
+                        <div class="space-x-2 text-xs">
+                            <button type="button" onclick="toggleAllMukellefler(true)" class="text-emerald-700 font-semibold hover:underline">Tümünü Seç</button>
+                            <span class="text-gray-300">|</span>
+                            <button type="button" onclick="toggleAllMukellefler(false)" class="text-rose-600 font-semibold hover:underline">Seçimi Kaldır</button>
+                        </div>
+                    </div>
+                    <input type="text" id="tt-search-mukellef" oninput="renderModalMukellefList()" placeholder="Mükellef ara..." class="w-full mb-2 px-3 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-xs outline-none focus:border-emerald-600">
+                    <div id="tt-mukellef-list" class="border border-gray-200 rounded-lg max-h-40 overflow-y-auto divide-y divide-gray-100 bg-gray-50/50 p-2 space-y-1"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t">
+                <button type="button" onclick="closeModal('toplu-tahakkuk')" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50">İptal</button>
+                <button type="button" onclick="executeCokluDonemTahakkuk()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-sm font-semibold">Seçilen Aylara Tahakkuk Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tahsilat Ekle Modalı -->
+    <div id="modal-tahsilat" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="text-lg font-bold text-gray-900">Tahsilat Ekle</h3>
+                <button onclick="closeModal('tahsilat')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveTahsilat(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Mükellef Seçin</label>
+                    <select id="t-mukellef" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Tarih</label>
+                        <input type="date" id="t-tarih" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Tutar (₺)</label>
+                        <input type="number" step="0.01" id="t-tutar" required placeholder="0.00" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Kategori</label>
+                    <select id="t-kategori" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                        <option value="Muhasebe Ücreti Tahsilatı">Muhasebe Ücreti Tahsilatı</option>
+                        <option value="Diğer Tahsilat">Diğer Tahsilat</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Açıklama</label>
+                    <input type="text" id="t-aciklama" placeholder="Örn: Ekim 2026 dönemi tahsilatı" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('tahsilat')" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50">İptal</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-sm font-semibold">Tahsilat Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ödeme Ekle Modalı -->
+    <div id="modal-odeme" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 class="text-lg font-bold text-gray-900">Mükellef Adına Ödeme Ekle</h3>
+                <button onclick="closeModal('odeme')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveOdeme(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Mükellef Seçin</label>
+                    <select id="o-mukellef" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Tarih</label>
+                        <input type="date" id="o-tarih" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Tutar (₺)</label>
+                        <input type="number" step="0.01" id="o-tutar" required placeholder="0.00" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Ödeme Türü / Kategori</label>
+                    <select id="o-kategori" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                        <option value="Vergi/Beyanname">Vergi/Beyanname</option>
+                        <option value="SGK Primi">SGK Primi</option>
+                        <option value="Damga Vergisi">Damga Vergisi</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Açıklama</label>
+                    <input type="text" id="o-aciklama" placeholder="Örn: Ekim 2026 KDV beyannamesi ödemesi" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-600 outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('odeme')" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50">İptal</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-sm font-semibold">Ödeme Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT UYGULAMA MANTIĞI -->
+    <script>
+        let mukellefler = JSON.parse(localStorage.getItem('defterdar_mukellefler')) || [
+            { id: 'm1', unvan: 'ARİF TURGUT', vkn: '1234567890', aylikUcret: 5000 },
+            { id: 'm2', unvan: 'HASAN İÇÖZ', vkn: '9876543210', aylikUcret: 6000 }
+        ];
+
+        let islemler = JSON.parse(localStorage.getItem('defterdar_islemler')) || [
+            { id: 'i1', tarih: '2026-10-07', mukellefId: 'm1', tip: 'Tahakkuk', kategori: 'Muhasebe Ücreti', aciklama: 'Ekim 2026 dönemi muhasebe ücreti tahakkuku', giris: 0, cikis: 5000 },
+            { id: 'i2', tarih: '2026-10-07', mukellefId: 'm2', tip: 'Tahakkuk', kategori: 'Muhasebe Ücreti', aciklama: 'Ekim 2026 dönemi muhasebe ücreti tahakkuku', giris: 0, cikis: 6000 }
+        ];
+
+        const ayIsimleri = [
+            "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+            "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const bugun = new Date().toISOString().split('T')[0];
+            if(document.getElementById('t-tarih')) document.getElementById('t-tarih').value = bugun;
+            if(document.getElementById('o-tarih')) document.getElementById('o-tarih').value = bugun;
+            if(document.getElementById('tt-islem-tarihi')) document.getElementById('tt-islem-tarihi').value = bugun;
+            
+            renderAll();
+        });
+
+        function saveData() {
+            localStorage.setItem('defterdar_mukellefler', JSON.stringify(mukellefler));
+            localStorage.setItem('defterdar_islemler', JSON.stringify(islemler));
+            renderAll();
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('tab-panel').classList.add('hidden');
+            document.getElementById('tab-mükellefler').classList.add('hidden');
+            document.getElementById('nav-panel').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all text-gray-600 hover:bg-gray-100";
+            document.getElementById('nav-mükellefler').className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all text-gray-600 hover:bg-gray-100";
+
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            document.getElementById('nav-' + tabName).className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-50 text-emerald-700";
+        }
+
+        function openModal(modalId, editId = null) {
+            if(modalId === 'mukellef') {
+                document.getElementById('edit-mukellef-id').value = '';
+                document.getElementById('m-unvan').value = '';
+                document.getElementById('m-vkn').value = '';
+                document.getElementById('m-ucret').value = '';
+                document.getElementById('mukellef-modal-title').innerText = "Yeni Mükellef Ekle";
+                
+                if(editId) {
+                    const m = mukellefler.find(x => x.id === editId);
+                    if(m) {
+                        document.getElementById('edit-mukellef-id').value = m.id;
+                        document.getElementById('m-unvan').value = m.unvan;
+                        document.getElementById('m-vkn').value = m.vkn;
+                        document.getElementById('m-ucret').value = m.aylikUcret;
+                        document.getElementById('mukellef-modal-title').innerText = "Mükellef Düzenle";
+                    }
+                }
+            } else if(modalId !== 'toplu-tahakkuk') {
+                updateSelectOptions();
+            }
+            document.getElementById('modal-' + modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById('modal-' + modalId).classList.add('hidden');
+        }
+
+        function openTopluTahakkukModal() {
+            renderAylarListesi();
+            renderModalMukellefList();
+            document.getElementById('tt-tutar').value = '';
+            document.getElementById('tt-islem-tarihi').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modal-toplu-tahakkuk').classList.remove('hidden');
+        }
+
+        function renderAylarListesi() {
+            const container = document.getElementById('tt-aylar-listesi');
+            let html = '';
+            const simdiYil = new Date().getFullYear();
+            
+            ayIsimleri.forEach((ay, idx) => {
+                let ayNum = idx + 1;
+                let ayKod = `${simdiYil}-${String(ayNum).padStart(2, '0')}`;
+                let etiket = `${ay} ${simdiYil}`;
+                let isChecked = (idx === 8 || idx === 9) ? 'checked' : '';
+
+                html += `
+                    <label class="flex items-center space-x-2 p-1.5 bg-white rounded border border-gray-200 cursor-pointer text-xs font-medium text-gray-700 hover:border-emerald-500">
+                        <input type="checkbox" value="${ayKod}" data-ayadi="${ay} ${simdiYil}" class="tt-ay-checkbox w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" ${isChecked}>
+                        <span>${etiket}</span>
+                    </label>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function toggleAllAylar(status) {
+            document.querySelectorAll('.tt-ay-checkbox').forEach(cb => cb.checked = status);
+        }
+
+        function renderModalMukellefList() {
+            const container = document.getElementById('tt-mukellef-list');
+            const query = (document.getElementById('tt-search-mukellef').value || '').toLowerCase().trim();
+            
+            let filtered = mukellefler.filter(m => m.unvan.toLowerCase().includes(query) || m.vkn.toLowerCase().includes(query));
+
+            let html = '';
+            filtered.forEach(m => {
+                html += `
+                    <label class="flex items-center justify-between p-2 hover:bg-white rounded-lg cursor-pointer transition-colors">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" value="${m.id}" class="tt-mukellef-checkbox w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" checked>
+                            <div>
+                                <p class="text-xs font-semibold text-gray-900">${m.unvan}</p>
+                                <p class="text-[10px] text-gray-500">${m.vkn} · Aylık Ücret: ${formatMoney(m.aylikUcret)}</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-700">${formatMoney(m.aylikUcret)}</span>
+                    </label>
+                `;
+            });
+            container.innerHTML = html || `<p class="p-3 text-center text-xs text-gray-400">Mükellef bulunamadı.</p>`;
+        }
+
+        function toggleAllMukellefler(status) {
+            document.querySelectorAll('.tt-mukellef-checkbox').forEach(cb => cb.checked = status);
+        }
+
+        function executeCokluDonemTahakkuk() {
+            const islemTarihi = document.getElementById('tt-islem-tarihi').value;
+            const ortakTutarInput = parseFloat(document.getElementById('tt-tutar').value);
+            const secilenAylar = document.querySelectorAll('.tt-ay-checkbox:checked');
+            const secilenMukellefler = document.querySelectorAll('.tt-mukellef-checkbox:checked');
+
+            if(!islemTarihi) { alert("Lütfen bir işlem tarihi seçin."); return; }
+            if(secilenAylar.length === 0) { alert("Lütfen en az bir ay/dönem seçin."); return; }
+            if(secilenMukellefler.length === 0) { alert("Lütfen en az bir mükellef seçin."); return; }
+
+            let toplamEklenen = 0;
+            secilenMukellefler.forEach(mCb => {
+                const mId = mCb.value;
+                const m = mukellefler.find(x => x.id === mId);
+                if(m) {
+                    const uygulanacakTutar = !isNaN(ortakTutarInput) && ortakTutarInput > 0 ? ortakTutarInput : m.aylikUcret;
+                    secilenAylar.forEach(aCb => {
+                        const ayAdiEtiketi = aCb.getAttribute('data-ayadi');
+                        if(uygulanacakTutar > 0) {
+                            islemler.push({
+                                id: 'i_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                                tarih: islemTarihi,
+                                mukellefId: m.id,
+                                tip: 'Tahakkuk',
+                                kategori: 'Muhasebe Ücreti',
+                                aciklama: `${ayAdiEtiketi} Muhasebe Ücreti Tahakkuku`,
+                                giris: 0,
+                                cikis: uygulanacakTutar
+                            });
+                            toplamEklenen++;
+                        }
+                    });
+                }
+            });
+
+            closeModal('toplu-tahakkuk');
+            saveData();
+            alert(`${secilenAylar.length} farklı dönem için toplam ${toplamEklenen} adet tahakkuk kaydı oluşturuldu.`);
+        }
+
+        function updateSelectOptions() {
+            const tSel = document.getElementById('t-mukellef');
+            const oSel = document.getElementById('o-mukellef');
+            let opts = mukellefler.map(m => `<option value="${m.id}">${m.unvan} (${m.vkn})</option>`).join('');
+            if(tSel) tSel.innerHTML = opts;
+            if(oSel) oSel.innerHTML = opts;
+            updatePanelMukellefFilter();
+        }
+
+        function updatePanelMukellefFilter() {
+            const filterSel = document.getElementById('filter-panel-mukellef');
+            if(!filterSel) return;
+            const currentVal = filterSel.value;
+            let html = `<option value="tumu">Tüm Mükellefler (Genel Akış)</option>`;
+            mukellefler.forEach(m => {
+                html += `<option value="${m.id}">${m.unvan} (${m.vkn})</option>`;
+            });
+            filterSel.innerHTML = html;
+            filterSel.value = currentVal;
+        }
+
+        function onPanelMukellefChange() {
+            renderTransactions();
+            updateStats();
+        }
+
+        function formatMoney(val) {
+            return '₺' + Number(val).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function saveMukellef(e) {
+            e.preventDefault();
+            const editId = document.getElementById('edit-mukellef-id').value;
+            const unvan = document.getElementById('m-unvan').value.trim();
+            const vkn = document.getElementById('m-vkn').value.trim();
+            const aylikUcret = parseFloat(document.getElementById('m-ucret').value) || 0;
+
+            if(editId) {
+                const m = mukellefler.find(x => x.id === editId);
+                if(m) { m.unvan = unvan; m.vkn = vkn; m.aylikUcret = aylikUcret; }
+            } else {
+                const yeniM = { id: 'm_' + Date.now(), unvan, vkn, aylikUcret };
+                mukellefler.push(yeniM);
+            }
+            closeModal('mukellef');
+            saveData();
+        }
+
+        function deleteMukellef(id) {
+            if(confirm("Bu mükellefi ve ilgili tüm geçmiş işlemlerini silmek istediğinize emin misiniz?")) {
+                mukellefler = mukellefler.filter(x => x.id !== id);
+                islemler = islemler.filter(x => x.mukellefId !== id);
+                saveData();
+            }
+        }
+
+        function saveTahsilat(e) {
+            e.preventDefault();
+            const mukellefId = document.getElementById('t-mukellef').value;
+            const tarih = document.getElementById('t-tarih').value;
+            const tutar = parseFloat(document.getElementById('t-tutar').value) || 0;
+            const kategori = document.getElementById('t-kategori').value;
+            const aciklama = document.getElementById('t-aciklama').value || kategori;
+
+            islemler.push({
+                id: 'i_' + Date.now(),
+                tarih, mukellefId,
+                tip: 'Tahsilat',
+                kategori, aciklama,
+                giris: tutar,
+                cikis: 0
+            });
+            closeModal('tahsilat');
+            saveData();
+        }
+
+        function saveOdeme(e) {
+            e.preventDefault();
+            const mukellefId = document.getElementById('o-mukellef').value;
+            const tarih = document.getElementById('o-tarih').value;
+            const tutar = parseFloat(document.getElementById('o-tutar').value) || 0;
+            const kategori = document.getElementById('o-kategori').value;
+            const aciklama = document.getElementById('o-aciklama').value || (kategori + ' Ödemesi');
+
+            islemler.push({
+                id: 'i_' + Date.now(),
+                tarih, mukellefId,
+                tip: 'Ödeme',
+                kategori, aciklama,
+                giris: 0,
+                cikis: tutar
+            });
+            closeModal('odeme');
+            saveData();
+        }
+
+        function deleteIslem(id) {
+            if(confirm("Bu hareketi silmek istediğinize emin misiniz?")) {
+                islemler = islemler.filter(x => x.id !== id);
+                saveData();
+            }
+        }
+
+        function renderAll() {
+            updatePanelMukellefFilter();
+            renderTransactions();
+            renderMukellefler();
+            updateStats();
+        }
+
+        function renderTransactions() {
+            const tbody = document.getElementById('transaction-table-body');
+            const tipFiltre = document.getElementById('filter-islem-tipi').value;
+            const mukellefFiltre = document.getElementById('filter-panel-mukellef') ? document.getElementById('filter-panel-mukellef').value : 'tumu';
+            
+            let filtered = islemler;
+            if(mukellefFiltre !== 'tumu') {
+                filtered = filtered.filter(x => x.mukellefId === mukellefFiltre);
+            }
+            if(tipFiltre !== 'tumu') {
+                filtered = filtered.filter(x => x.tip === tipFiltre);
+            }
+
+            filtered.sort((a, b) => new Date(b.tarih) - new Date(a.tarih));
+
+            let html = '';
+            let toplamGiris = 0;
+            let toplamCikis = 0;
+
+            let sortedChronological = [...islemler].sort((a, b) => new Date(a.tarih) - new Date(b.tarih));
+            let kasaMap = {};
+            let currentBalance = 0;
+            sortedChronological.forEach(i => {
+                currentBalance += (i.giris - i.cikis);
+                kasaMap[i.id] = currentBalance;
+            });
+
+            filtered.forEach(i => {
+                const m = mukellefler.find(x => x.id === i.mukellefId);
+                const mUnvan = m ? m.unvan : 'Silinmiş Mükellef';
+                toplamGiris += i.giris;
+                toplamCikis += i.cikis;
+
+                let badgeClass = 'bg-gray-100 text-gray-700';
+                if(i.tip === 'Tahakkuk') badgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
+                if(i.tip === 'Tahsilat') badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                if(i.tip === 'Ödeme') badgeClass = 'bg-rose-50 text-rose-700 border border-rose-200';
+
+                html += `
+                    <tr class="hover:bg-gray-50/75 transition-colors">
+                        <td class="p-3 pl-4 text-gray-600 whitespace-nowrap">${i.tarih.split('-').reverse().join('.')}</td>
+                        <td class="p-3 font-semibold text-gray-900">${mUnvan}</td>
+                        <td class="p-3"><span class="px-2.5 py-1 rounded-md text-xs font-semibold ${badgeClass}">${i.tip}</span></td>
+                        <td class="p-3 text-gray-600">${i.kategori}</td>
+                        <td class="p-3 text-gray-600">${i.aciklama}</td>
+                        <td class="p-3 text-right font-medium text-emerald-700">${i.giris > 0 ? formatMoney(i.giris) : '—'}</td>
+                        <td class="p-3 text-right font-medium text-rose-700">${i.cikis > 0 ? formatMoney(i.cikis) : '—'}</td>
+                        <td class="p-3 text-right pr-4 font-bold text-gray-900">${formatMoney(kasaMap[i.id] || 0)}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="deleteIslem('${i.id}')" class="text-gray-400 hover:text-rose-600 transition-colors p-1"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html || `<tr><td colspan="9" class="p-6 text-center text-gray-400">Kayıt bulunamadı.</td></tr>`;
+            document.getElementById('table-record-count').innerText = `TOPLAM (${filtered.length} KAYIT)`;
+            document.getElementById('footer-total-giris').innerText = formatMoney(toplamGiris);
+            document.getElementById('footer-total-cikis').innerText = formatMoney(toplamCikis);
+            document.getElementById('footer-total-bakiye').innerText = formatMoney(currentBalance);
+        }
+
+        function renderMukellefler() {
+            const tbody = document.getElementById('mukellef-table-body');
+            const searchQuery = document.getElementById('mukellef-search-input').value.toLowerCase().trim();
+
+            let filtered = mukellefler.filter(m => 
+                m.unvan.toLowerCase().includes(searchQuery) || m.vkn.toLowerCase().includes(searchQuery)
+            );
+
+            let html = '';
+            filtered.forEach(m => {
+                let mIslemler = islemler.filter(i => i.mukellefId === m.id);
+                let borc = mIslemler.reduce((acc, curr) => acc + curr.cikis, 0);
+                let tahsilat = mIslemler.reduce((acc, curr) => acc + curr.giris, 0);
+                let bakiye = borc - tahsilat;
+
+                html += `
+                    <tr class="hover:bg-gray-50/75 transition-colors">
+                        <td class="p-3 pl-4 font-semibold text-gray-900">${m.unvan}</td>
+                        <td class="p-3 text-gray-600">${m.vkn}</td>
+                        <td class="p-3 font-medium text-emerald-700">${formatMoney(m.aylikUcret)}</td>
+                        <td class="p-3 text-gray-700">${formatMoney(borc)}</td>
+                        <td class="p-3 text-emerald-700">${formatMoney(tahsilat)}</td>
+                        <td class="p-3 font-bold text-gray-900">${formatMoney(bakiye)}</td>
+                        <td class="p-3 text-center pr-4 flex items-center justify-center gap-2">
+                            <button onclick="openModal('mukellef', '${m.id}')" class="text-gray-400 hover:text-emerald-700 transition-colors p-1" title="Düzenle"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteMukellef('${m.id}')" class="text-gray-400 hover:text-rose-600 transition-colors p-1" title="Sil"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html || `<tr><td colspan="7" class="p-6 text-center text-gray-400">Mükellef bulunamadı.</td></tr>`;
+            document.getElementById('mükellef-subtitle').innerText = `${mukellefler.length} mükellef · bakiye = tahakkuk + ödeme - tahsilat`;
+        }
+
+        function updateStats() {
+            const mukellefFiltre = document.getElementById('filter-panel-mukellef') ? document.getElementById('filter-panel-mukellef').value : 'tumu';
+
+            let toplamTahsilat = 0;
+            let toplamOdemeler = 0;
+            let netKasa = 0;
+
+            let targetIslemler = islemler;
+            if(mukellefFiltre !== 'tumu') {
+                targetIslemler = islemler.filter(i => i.mukellefId === mukellefFiltre);
+            }
+
+            targetIslemler.forEach(i => {
+                toplamTahsilat += i.giris;
+                toplamOdemeler += i.cikis;
+            });
+
+            islemler.forEach(i => {
+                netKasa += (i.giris - i.cikis);
+            });
+
+            const alacakTitleElem = document.getElementById('stat-alacak-title');
+            const alacakValueElem = document.getElementById('stat-toplam-alacak');
+            const mukellefSayisiElem = document.getElementById('stat-mükellef-sayisi');
+
+            if(mukellefFiltre !== 'tumu') {
+                const secilenM = mukellefler.find(x => x.id === mukellefFiltre);
+                alacakTitleElem.innerText = "MÜKELLEF KALAN BAKİYE";
+                let mBorc = targetIslemler.reduce((acc, curr) => acc + curr.cikis, 0);
+                let mTahsilat = targetIslemler.reduce((acc, curr) => acc + curr.giris, 0);
+                let mBakiye = mBorc - mTahsilat;
+                alacakValueElem.innerText = formatMoney(mBakiye);
+                mukellefSayisiElem.innerText = secilenM ? secilenM.unvan : 'Seçili Mükellef';
+            } else {
+                alacakTitleElem.innerText = "TOPLAM ALACAK";
+                let toplamA = 0;
+                mukellefler.forEach(m => {
+                    let mi = islemler.filter(i => i.mukellefId === m.id);
+                    toplamA += (mi.reduce((a,c)=>a+c.cikis,0) - mi.reduce((a,c)=>a+c.giris,0));
+                });
+                alacakValueElem.innerText = formatMoney(toplamA);
+                mukellefSayisiElem.innerText = `${mukellefler.length} mükellef carisi`;
+            }
+
+            document.getElementById('stat-bu-ay-tahsilat').innerText = formatMoney(toplamTahsilat);
+            document.getElementById('stat-bu-ay-odemeler').innerText = formatMoney(toplamOdemeler);
+            document.getElementById('stat-net-nakit').innerText = formatMoney(netKasa);
+        }
+    </script>
+</body>
+</html>
